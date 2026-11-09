@@ -123,3 +123,32 @@ test('sc in 2nd ch from hook skips one chain', () => {
   assert.equal(g.rows[1].made, 10);
   assert.equal(g.warnings.length, 0);
 });
+
+test('letter symbols: X V A, T F E, CH, K, leading repeat counts, trailing ; and :', () => {
+  const text = `R1: mr, 12f;
+R2: 12FV:
+R3: 12 (F, FV);
+R4: 12(2F, FV);
+R5: 48F;
+R6: 21F, 6CH, K6, 21F;
+R7: 48X:`;
+  const g = buildGraph(parsePattern(text));
+  assert.deepEqual(g.errors, []);
+  assert.deepEqual(g.rows.map(r => r.made), [12, 24, 36, 48, 48, 48, 48]);
+  assert.equal(g.warnings.length, 0, JSON.stringify(g.warnings));
+  assert.equal(g.nodes[g.rows[0].nodes[0]].type, 'dc');
+  assert.equal(g.nodes[g.rows[6].nodes[0]].type, 'sc');
+  assert.equal(g.rows[5].nodes.filter(id => g.nodes[id].type === 'ch').length, 6);
+});
+
+test('sc symbols: ball written as X, V, A', () => {
+  assert.deepEqual(counts('R1: mr, 6X\nR2: 6V\nR3: 6(X, V)\nR4: X x18\nR5: 6(X, A)\nR6: 6A'), [6, 12, 18, 18, 12, 6]);
+  assert.deepEqual(counts('R1: mr, 6X\nR2: 6W\nR3: 6M'), [6, 18, 6]);
+  assert.deepEqual(counts('R1: mr, 8T\nR2: 8TV\nR3: 8(T, TV)\nR4: 12TA'), [8, 16, 24, 12]);
+});
+
+test('symbol count mismatch is reported', () => {
+  const g = buildGraph(parsePattern('R1: mr, 12F\nR2: 12FV\nR3: 48FV'));
+  assert.equal(g.errors.length, 0);
+  assert.match(g.warnings[0].msg, /48 stitches, but only 24/);
+});

@@ -116,6 +116,14 @@ export class ItemParser {
     const bad = { error: `I do not know "${raw.trim()}".` };
     if (!s) return { items: [] };
 
+    // Repeat count before the brackets: "12 (f, fv)", "12(2f, fv)", "6 x (sc, inc)"
+    let m0;
+    if ((m0 = s.match(/^(\d+)\s*(?:x|\*|times)?\s*([([].*)$/))) {
+      const inner = this.parseItem(m0[2]);
+      if (inner.error) return inner;
+      return { items: repeat(inner.items, +m0[1]) };
+    }
+
     // Bracketed group: (sc, inc) x6, [sc, inc] around
     if (s[0] === '(' || s[0] === '[') {
       let depth = 0, end = -1;
@@ -223,8 +231,39 @@ export class ItemParser {
       const n = (m[1] ? +m[1] : 1) * (m[3] ? +m[3] : 1);
       return { items: repeat([{ k: 'st', type: this.type(m[2]), take: 1 }], n) };
     }
+    const sym = parseSymbol(s);
+    if (sym) return { items: sym };
     return bad;
   }
+}
+
+// Letter symbols used in Chinese and Japanese style patterns.
+//   Stitch:  X = sc, T = hdc, F = dc, E = tr
+//   After a stitch letter (or alone, meaning X):
+//            V = 2 in one stitch, W = 3 in one stitch,
+//            A = 2 together, M = 3 together
+//   CH = chain, K = skip, SL = slip stitch
+// A number before or after gives how many: "12FV", "FV12", "6X", "X x6", "K6".
+const SYM_BASE = { x: 'sc', t: 'hdc', f: 'dc', e: 'tr' };
+function parseSymbol(s) {
+  let m = s.match(/^(\d+)?\s*k\s*(?:[x*]\s*)?(\d+)?$/);
+  if (m) return [{ k: 'sk', n: (m[1] ? +m[1] : 1) * (m[2] ? +m[2] : 1) }];
+  m = s.match(/^(\d+)?\s*sl\s*(?:[x*]\s*)?(\d+)?$/);
+  if (m) return repeat([{ k: 'st', type: 'slst', take: 1 }], (m[1] ? +m[1] : 1) * (m[2] ? +m[2] : 1));
+  m = s.match(/^(\d+)?\s*([xtfe])?([vwam])?\s*(?:[x*]\s*)?(\d+)?$/);
+  if (!m || (!m[2] && !m[3])) return null;
+  const n = (m[1] ? +m[1] : 1) * (m[4] ? +m[4] : 1);
+  if (n < 1) return null;
+  const type = SYM_BASE[m[2] || 'x'];
+  let one;
+  switch (m[3]) {
+    case 'v': one = incItems(type, 2); break;
+    case 'w': one = incItems(type, 3); break;
+    case 'a': one = [{ k: 'st', type, take: 2 }]; break;
+    case 'm': one = [{ k: 'st', type, take: 3 }]; break;
+    default: one = [{ k: 'st', type, take: 1 }];
+  }
+  return repeat(one, n);
 }
 
 function incItems(type, n) {
@@ -275,6 +314,7 @@ export function parsePattern(text) {
       line = line.slice(m[0].length);
     }
 
+    line = line.replace(/[\s;:,.]+$/, '');
     let declared = null;
     const cm = line.match(COUNT_RE);
     if (cm) {

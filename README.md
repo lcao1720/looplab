@@ -32,6 +32,9 @@ On GitHub, turn on **Settings → Pages → Deploy from branch → main / root**
 | Rows | `ch 11`, then `Row 1: sc in 2nd ch from hook, sc x9, turn` |
 | Yarn color | a line `color: teal` (any CSS color name or hex) |
 | UK terms | a line `terms: uk` |
+| Letter symbols | `X` sc, `T` hdc, `F` dc, `E` tr, `CH` chain, `K` skip, `SL` sl st |
+| Symbol inc / dec | after a stitch letter, or alone for sc: `V` 2 in one, `W` 3 in one, `A` 2 together, `M` 3 together (`FV`, `TA`, `V`) |
+| Symbol counts | `12FV`, `FV12`, `12(2F, FV)`, `K6` |
 | Close the end | `FO, close the hole` |
 | Comment | `# anything` |
 
