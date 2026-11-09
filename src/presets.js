@@ -89,6 +89,23 @@ R6: (sc, inc) around (60)
 `,
   },
   {
+    id: 'ruffle-cup',
+    name: 'Ruffle cup',
+    stuffing: 0,
+    text: `# Letter symbols: F = dc, FV = 2 dc in one, X = sc, CH = chain, K = skip
+color: pink
+R1: mr, 12F (12)
+R2: 12FV (24)
+R3: 12(F, FV) (36)
+R4: 12(2F, FV) (48)
+R5: 48F (48)
+R6: 21F, 6CH, K6, 21F (48)
+R7: 48X (48)
+R8: 48FV (96)
+R9: 32(2F, FV) (128)
+`,
+  },
+  {
     id: 'swatch',
     name: 'Swatch',
     stuffing: 0,
