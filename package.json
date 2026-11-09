@@ -1,0 +1,29 @@
+{
+  "name": "looplab",
+  "version": "1.0.0",
+  "description": "Type a crochet pattern and see the 3D piece before you make it.",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.mjs"
+  },
+  "keywords": [
+    "crochet",
+    "amigurumi",
+    "3d",
+    "simulation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright-core": "^1.64.1"
+  },
+  "type": "module",
+  "private": true
+}

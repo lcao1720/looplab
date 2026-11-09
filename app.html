@@ -1,0 +1,232 @@
+<title>Looplab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Type a crochet pattern and see the 3D piece before you make it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..900,0..1,0..1,0..1&display=swap">
+<style>
+/* Layout: a workbench. The pattern card is on the left, the 3D stage fills the right. On a phone the stage goes first and the pattern stacks below. */
+:root {
+  --bg: #f3f2f7;
+  --panel: #ffffff;
+  --ink: #1f1b2d;
+  --muted: #676276;
+  --line: #e0dde9;
+  --accent: #5b4bdb;
+  --accent-ink: #ffffff;
+  --accent-soft: #ecebfd;
+  --stage: #e8e6f0;
+  --stitch-line: #2a2433;
+  --warn: #8a5300;
+  --warn-bg: #fcefd8;
+  --err: #b42318;
+  --err-bg: #fde7e4;
+  --font-display: "Recursive", ui-rounded, system-ui, sans-serif;
+  --font-ui: "Recursive", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-code: "Recursive", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #17151f; --panel: #201d2b; --ink: #ecebf3; --muted: #a29eb3; --line: #332f42;
+    --accent: #a99dff; --accent-ink: #17151f; --accent-soft: #2d2848; --stage: #121019; --stitch-line: #100e16;
+    --warn: #f2b552; --warn-bg: #3a2c12; --err: #ff8b7e; --err-bg: #3d1b18;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #17151f; --panel: #201d2b; --ink: #ecebf3; --muted: #a29eb3; --line: #332f42;
+  --accent: #a99dff; --accent-ink: #17151f; --accent-soft: #2d2848; --stage: #121019; --stitch-line: #100e16;
+  --warn: #f2b552; --warn-bg: #3a2c12; --err: #ff8b7e; --err-bg: #3d1b18;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-ui); font-variation-settings: "CASL" 0, "MONO" 0; font-size: 15px; line-height: 1.5;
+}
+.app { height: 100%; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.bar {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 16px;
+  padding-block: 12px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.name { font-family: var(--font-display); font-variation-settings: "CASL" 1, "MONO" 0; font-weight: 800; font-size: 22px; letter-spacing: -0.01em; margin: 0; }
+.name .o { color: var(--accent); }
+.tag { margin: 0; color: var(--muted); font-size: 14px; }
+.work { display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); min-height: 0; }
+.panel {
+  overflow-y: auto; border-right: 1px solid var(--line); background: var(--panel);
+  padding-block: 16px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: 16px;
+  display: flex; flex-direction: column; gap: 22px; min-width: 0;
+}
+.block { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.label { margin: 0; font-size: 12px; font-weight: 650; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip, .btn {
+  font: inherit; font-size: 14px; color: var(--ink); background: transparent; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+}
+.chip:hover, .btn:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+:is(button, input, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.editor {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--bg); overflow: hidden; height: 300px; resize: vertical; min-height: 160px;
+}
+.editor:focus-within { border-color: var(--accent); }
+.gutter, #pattern { font-family: var(--font-code); font-variation-settings: "MONO" 1, "CASL" 0.6; font-size: 14px; line-height: 22px; padding-block: 10px; }
+.gutter { overflow: hidden; padding-inline: 10px 6px; text-align: right; color: var(--muted); user-select: none; font-variant-numeric: tabular-nums; min-width: 2.4em; }
+.gutter span { display: block; height: 22px; }
+.gutter .warn { color: var(--warn); font-weight: 700; }
+.gutter .err { color: var(--err); font-weight: 700; }
+#pattern {
+  border: 0; outline: 0; resize: none; background: transparent; color: var(--ink); width: 100%; height: 100%;
+  padding-inline: 6px 10px; white-space: pre; overflow: auto; tab-size: 2; box-sizing: border-box;
+}
+.messages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.msg { font-size: 13px; padding: 7px 10px; border-radius: 8px; display: flex; gap: 8px; align-items: baseline; }
+.msg.err { background: var(--err-bg); color: var(--err); }
+.msg.warn { background: var(--warn-bg); color: var(--warn); }
+.msg.note { background: var(--accent-soft); color: var(--ink); }
+.where { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; }
+.round {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid transparent; border-radius: 8px; cursor: pointer;
+  display: grid; grid-template-columns: 1fr auto; grid-template-areas: "l d" "c c"; gap: 0 6px; padding: 6px 8px; text-align: left;
+}
+.round:hover { border-color: var(--line); }
+.round.has-issue { border-color: var(--warn); }
+.round[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.r-label { grid-area: l; font-size: 12px; color: var(--muted); }
+.r-delta { grid-area: d; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.r-count { grid-area: c; font-family: var(--font-display); font-variation-settings: "CASL" 1; font-weight: 750; font-size: 20px; font-variant-numeric: tabular-nums; }
+.help summary { cursor: pointer; font-weight: 650; }
+.help .table-wrap { overflow-x: auto; }
+.help table { border-collapse: collapse; font-size: 13px; width: 100%; }
+.help td { padding: 6px 8px 6px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.help td:first-child { color: var(--muted); white-space: nowrap; }
+.help code { font-family: var(--font-code); font-variation-settings: "MONO" 1, "CASL" 0.6; font-size: 13px; background: var(--bg); padding: 1px 5px; border-radius: 5px; white-space: nowrap; }
+.help p { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.stage { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; background: var(--stage); min-width: 0; min-height: 0; }
+.canvas-wrap { position: relative; min-height: 0; }
+#stage-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#stage-canvas:active { cursor: grabbing; }
+.stage-top { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none; }
+.status, .stale { font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; display: inline-flex; align-items: center; gap: 6px; }
+.stale { color: var(--warn); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.status[data-state="settled"] .dot { background: #2e9d6a; }
+@media (prefers-reduced-motion: no-preference) {
+  .status[data-state="settling"] .dot { animation: pulse 0.9s ease-in-out infinite alternate; }
+}
+@keyframes pulse { from { opacity: 0.25; } to { opacity: 1; } }
+.ruler-wrap { position: absolute; left: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.ruler { height: 6px; border: 1.5px solid var(--muted); border-top: 0; width: 60px; }
+.controlbar {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px;
+  background: var(--panel); border-top: 1px solid var(--line);
+  padding-block: 10px; padding-left: 16px; padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.readout { display: flex; flex-direction: column; min-width: 0; }
+.size { font-family: var(--font-display); font-variation-settings: "CASL" 1; font-weight: 750; font-size: 18px; font-variant-numeric: tabular-nums; }
+.counts { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 14px; }
+.ctl, .toggle { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.ctl input[type="range"] { width: 110px; accent-color: var(--accent); }
+.toggle input { accent-color: var(--accent); }
+#gauge { width: 3.4em; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; font-variant-numeric: tabular-nums; }
+output { min-width: 5.5em; color: var(--muted); }
+@media (max-width: 760px) {
+  .app { height: auto; display: block; }
+  html, body { height: auto; }
+  .work { display: flex; flex-direction: column; }
+  .stage { order: -1; }
+  .canvas-wrap { height: min(72vh, 440px); }
+  .panel { border-right: 0; overflow: visible; padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  .controlbar { padding-left: max(16px, env(safe-area-inset-left, 0px)); }
+}
+</style>
+
+<div class="app">
+  <header class="bar">
+    <h1 class="name">L<span class="o">oo</span>plab</h1>
+    <p class="tag">Type a crochet pattern. See the piece before you make it.</p>
+  </header>
+  <main class="work">
+    <section class="panel" aria-label="Pattern">
+      <div class="block">
+        <h2 class="label">Start from an example</h2>
+        <div id="presets" class="chips"></div>
+      </div>
+      <div class="block">
+        <div class="label-row">
+          <h2 class="label"><label for="pattern">Pattern</label></h2>
+          <span class="hint">US terms, one round per line</span>
+        </div>
+        <div class="editor">
+          <div id="gutter" class="gutter" aria-hidden="true"></div>
+          <textarea id="pattern" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" aria-describedby="messages"></textarea>
+        </div>
+        <ul id="messages" class="messages" aria-live="polite" hidden></ul>
+      </div>
+      <div class="block">
+        <h2 class="label" id="rounds-title">Rounds</h2>
+        <p class="hint">Stitch count, and the change from the round below. Select one to see it in the model.</p>
+        <div id="rounds" class="rounds"></div>
+      </div>
+      <details class="block help">
+        <summary>How to write a pattern</summary>
+        <div class="table-wrap">
+          <table>
+            <tr><td>Magic ring</td><td><code>R1: mr, 6 sc</code></td></tr>
+            <tr><td>Stitches</td><td><code>sc</code> <code>hdc</code> <code>dc</code> <code>tr</code> <code>sl st</code> <code>ch</code></td></tr>
+            <tr><td>Many of one</td><td><code>6 sc</code> or <code>sc x6</code></td></tr>
+            <tr><td>Increase</td><td><code>inc</code> <code>2 sc in next</code> <code>hdc inc</code></td></tr>
+            <tr><td>Decrease</td><td><code>dec</code> <code>invdec</code> <code>sc2tog</code></td></tr>
+            <tr><td>Repeat</td><td><code>(sc, inc) x6</code> or <code>*sc, inc* 6 times</code></td></tr>
+            <tr><td>Fill the round</td><td><code>sc around</code> <code>(sc, inc) around</code></td></tr>
+            <tr><td>Many rounds</td><td><code>R7-R12: sc around</code></td></tr>
+            <tr><td>Check a count</td><td>End the line with <code>(18)</code></td></tr>
+            <tr><td>Rows</td><td><code>ch 11</code>, then <code>Row 1: sc in 2nd ch from hook, sc x9</code></td></tr>
+            <tr><td>Yarn color</td><td>A line <code>color: teal</code></td></tr>
+            <tr><td>UK terms</td><td>A line <code>terms: uk</code></td></tr>
+            <tr><td>Close the end</td><td><code>FO, close the hole</code></td></tr>
+          </table>
+        </div>
+        <p>Not yet: joined rounds, front or back loop only, and puff, bobble or popcorn stitches.</p>
+      </details>
+    </section>
+    <section class="stage" aria-label="3D model">
+      <div class="canvas-wrap">
+        <canvas id="stage-canvas" aria-label="3D model of the pattern. Drag to turn it, scroll or pinch to zoom."></canvas>
+        <div class="stage-top">
+          <span id="status" class="status" data-state="settling"><span class="dot"></span><span id="status-text">Settling</span></span>
+          <span id="stale" class="stale" hidden>Fix the pattern to update the model</span>
+        </div>
+        <div class="ruler-wrap" aria-hidden="true"><div id="ruler" class="ruler"></div><span id="ruler-label">5 cm</span></div>
+      </div>
+      <div class="controlbar">
+        <div class="readout"><span id="size" class="size">&nbsp;</span><span id="counts" class="counts">&nbsp;</span></div>
+        <div class="controls">
+          <label class="ctl" for="stuffing">Stuffing <input id="stuffing" type="range" min="0" max="100" step="5" value="70"> <output id="stuffing-out" for="stuffing">Firm</output></label>
+          <label class="ctl" for="gauge">Gauge <input id="gauge" type="number" min="4" max="60" step="1" value="18" inputmode="numeric"> sc per 10 cm</label>
+          <label class="toggle" for="show-lines"><input id="show-lines" type="checkbox" checked> Stitch lines</label>
+          <label class="toggle" for="show-stripes"><input id="show-stripes" type="checkbox" checked> Round stripes</label>
+          <button id="fit-view" type="button" class="btn">Center view</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<!--APP_SCRIPT-->
