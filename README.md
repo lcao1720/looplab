@@ -58,7 +58,9 @@ flowchart LR
 2. **Stitch graph.** Every stitch is a node. Edges connect a stitch to the stitch made just before it (`prev`, one stitch width) and to the stitch it is worked into (`parent`, one stitch height). Soft `bend` links stop the fabric from folding flat on itself. Triangles between rows make the surface.
 3. **Start shape.** Each round starts as a ring with circumference = stitch count × stitch width, one stitch height above the round below (the "ring model"). Rows start as a flat sheet.
 4. **Physics.** Position-based dynamics (XPBD). Each step moves the stitches, pulls every edge back to its rest length, pushes apart stitches that come too close, and adds stuffing pressure on the surface. The solver removes slow spin and stops when the shape no longer changes.
-5. **View.** three.js draws the surface in the yarn colors, with optional stitch lines and round stripes.
+5. **View.** three.js draws the piece in the yarn colors (`src/view.js`, `src/yarn.js`).
+   - **Yarn look (default).** One small stitch model is repeated on every stitch with an `InstancedMesh`. Each copy sits in the stitch's own frame: x along the round, y from the stitch it is worked into up to its top, z out of the fabric. The front is a "V" of two yarn legs, the back is a bar (the wrong side of crochet). hdc, dc and tr get diagonal yarn-over wraps (tr gets two). Chains lie along the chain. A twisted-ply bump texture runs along every strand. The fabric is drawn as two layers, one yarn thickness apart, darkened so they read as the shadow between strands. Every strand ends between the layers, so no cut ends show.
+   - **Smooth look.** A plain surface with stitch lines. Turn off "Yarn" to see it.
 
 ### Stitch sizes
 
@@ -81,6 +83,7 @@ npm install
 npm test             # parser, graph and shape tests (node --test)
 npm run build        # writes index.html and dist/looplab.html (one-file page)
 node scripts/check.mjs index.html shots   # headless Chrome screenshots of every example
+node scripts/closeup.mjs shots ball 1.5   # close-up of one example (after npm run build)
 ```
 
 ```
@@ -90,6 +93,7 @@ src/
   layout.js    start positions
   solver.js    physics
   view.js      three.js drawing
+  yarn.js      yarn look (instanced stitch models)
   presets.js   example patterns
   main.js      page wiring
 app.html       page markup and styles (source for index.html and dist/)
@@ -99,7 +103,7 @@ test/          node --test suites
 ## Roadmap
 
 - **Pattern coverage:** joined rounds (`sl st to first st, ch 1`), front/back loop only, turning chains that count as a stitch, chain spaces, clusters (puff, bobble, popcorn), granny squares.
-- **Realism:** draw real yarn (a tube along the yarn path, a V on top of each stitch); calibrate stitch sizes from photos of real swatches; gravity and a table surface.
+- **Realism:** calibrate stitch sizes from photos of real swatches; soft shadows; gravity and a table surface.
 - **Pieces:** several parts in one file (head, body, arms) and where to sew them together.
 - **Sharing:** link that carries the pattern, export to OBJ / GLB / STL.
 - **Reverse direction:** draw a shape, get a pattern.

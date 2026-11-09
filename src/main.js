@@ -11,7 +11,7 @@ const els = {
   messages: $('messages'), rounds: $('rounds'), roundsTitle: $('rounds-title'),
   canvas: $('stage-canvas'), status: $('status'), statusText: $('status-text'),
   stuffing: $('stuffing'), stuffingOut: $('stuffing-out'),
-  lines: $('show-lines'), stripes: $('show-stripes'), fit: $('fit-view'),
+  yarn: $('show-yarn'), stripes: $('show-stripes'), fit: $('fit-view'),
   gauge: $('gauge'), size: $('size'), counts: $('counts'),
   ruler: $('ruler'), rulerLabel: $('ruler-label'), stale: $('stale'),
 };
@@ -193,7 +193,7 @@ els.stuffing.addEventListener('input', () => {
   if (solver) { solver.setPressure(stuffingValue()); setStatus(false); }
   saveDraft();
 });
-els.lines.addEventListener('change', () => view.setShowLines(els.lines.checked));
+els.yarn.addEventListener('change', () => view.setLook(els.yarn.checked ? 'yarn' : 'smooth'));
 els.stripes.addEventListener('change', () => view.setStripes(els.stripes.checked));
 els.fit.addEventListener('click', () => view.fit());
 els.gauge.addEventListener('input', updateStats);
