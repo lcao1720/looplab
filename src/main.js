@@ -41,7 +41,27 @@ for (const p of PRESETS) {
   els.presets.appendChild(b);
 }
 
+// The link can name an example: ...#ruffle-cup opens that pattern.
+let currentPreset = null;
+function presetFromHash() {
+  let id = '';
+  try { id = decodeURIComponent(location.hash.slice(1)); } catch { /* bad hash */ }
+  return PRESETS.find(p => p.id === id) || null;
+}
+function setHash(id) {
+  try {
+    if (id) { if (location.hash.slice(1) !== id) location.hash = id; }
+    else if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  } catch { /* hash not available */ }
+}
+window.addEventListener('hashchange', () => {
+  const p = presetFromHash();
+  if (p && p.id !== currentPreset) loadPreset(p);
+});
+
 function loadPreset(p) {
+  currentPreset = p.id;
+  setHash(p.id);
   els.pattern.value = p.text;
   els.stuffing.value = p.stuffing;
   updateStuffingLabel();
@@ -72,6 +92,7 @@ els.pattern.addEventListener('scroll', () => { els.gutter.scrollTop = els.patter
 let timer = 0;
 els.pattern.addEventListener('input', () => {
   markPreset(null);
+  if (currentPreset) { currentPreset = null; setHash(null); }
   renderGutter();
   clearTimeout(timer);
   timer = setTimeout(() => { rebuild(false); saveDraft(); }, 350);
@@ -235,7 +256,10 @@ ro.observe(els.canvas);
 
 // ---------- start ----------
 const draft = loadDraft();
-if (draft) {
+const linked = presetFromHash();
+if (linked) {
+  loadPreset(linked);
+} else if (draft) {
   els.pattern.value = draft.text;
   if (Number.isFinite(draft.stuffing)) els.stuffing.value = draft.stuffing;
   updateStuffingLabel();
