@@ -276,7 +276,7 @@ if (linked) {
   updateStuffingLabel();
   rebuild(true);
 } else {
-  loadPreset(PRESETS[0]);
+  loadPreset(PRESETS.find(p => p.id === 'ruffle-cup') || PRESETS[0]);
 }
 requestAnimationFrame(frame);
 
