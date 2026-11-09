@@ -11,7 +11,7 @@ const els = {
   messages: $('messages'), rounds: $('rounds'), roundsTitle: $('rounds-title'),
   canvas: $('stage-canvas'), status: $('status'), statusText: $('status-text'),
   stuffing: $('stuffing'), stuffingOut: $('stuffing-out'),
-  yarn: $('show-yarn'), stripes: $('show-stripes'), fit: $('fit-view'),
+  yarn: $('show-yarn'), stripes: $('show-stripes'), fit: $('fit-view'), spin: $('spin'),
   gauge: $('gauge'), size: $('size'), counts: $('counts'),
   ruler: $('ruler'), rulerLabel: $('ruler-label'), stale: $('stale'),
 };
@@ -195,7 +195,12 @@ els.stuffing.addEventListener('input', () => {
 });
 els.yarn.addEventListener('change', () => view.setLook(els.yarn.checked ? 'yarn' : 'smooth'));
 els.stripes.addEventListener('change', () => view.setStripes(els.stripes.checked));
-els.fit.addEventListener('click', () => view.fit());
+els.fit.addEventListener('click', () => { view.setSpin(false); view.fit(true); });
+els.spin.addEventListener('click', () => view.setSpin(!view.spinning));
+view.onSpinChange = (on) => {
+  els.spin.setAttribute('aria-pressed', String(on));
+  els.spin.textContent = on ? 'Stop spin' : 'Spin 360°';
+};
 els.gauge.addEventListener('input', updateStats);
 
 function setStatus(settled) {
@@ -240,11 +245,17 @@ function frame() {
     while (!solver.settled && performance.now() - t0 < 9 && n < 60) { solver.step(); n++; }
     view.update();
     if (needsFit && solver.steps > 120) {
+      view.userMoved = false;
       view.fit();
       lastRadius = view.mesh.geometry.boundingSphere.radius;
       needsFit = false;
     }
-    if (solver.settled) setStatus(true);
+    if (solver.settled) {
+      setStatus(true);
+      // Stuffing can change the size after the first framing: frame again,
+      // unless you have already turned or zoomed the view yourself.
+      if (!view.userMoved) view.fit();
+    }
   }
   if (++statsTick % 10 === 0) updateStats();
   view.render();

@@ -3,7 +3,7 @@
 // and "smooth" (a plain surface with stitch lines).
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
 import { YarnLayer, yarnMaterial, SHELL } from './yarn.js';
 
 export class View {
@@ -14,16 +14,30 @@ export class View {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(38, 1, 0.05, 2000);
     this.camera.position.set(14, 10, 18);
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.12;
+    // Trackball rotation: drag turns the piece freely in any direction,
+    // including over the top and under the bottom (no stop at the poles).
+    this.controls = new TrackballControls(this.camera, canvas);
+    this.controls.rotateSpeed = 1.8;
+    this.controls.zoomSpeed = 1.1;
+    this.controls.panSpeed = 0.9;
+    this.controls.dynamicDampingFactor = 0.25;
+    this.controls.keys = ['', '', ''];     // no keyboard modes: typing in the pattern must not move the view
+    this.userMoved = false;
+    this.spinning = false;
+    this.onSpinChange = null;
+    this.lastTime = performance.now();
+    this.controls.addEventListener('start', () => { this.userMoved = true; this.setSpin(false); });
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x6d6880, 1.4);
-    const key = new THREE.DirectionalLight(0xffffff, 1.7);
-    key.position.set(6, 12, 9);
-    const rim = new THREE.DirectionalLight(0xdfe4ff, 0.6);
-    rim.position.set(-8, -4, -10);
-    this.scene.add(hemi, key, rim);
+    // Lights move with the camera, so the side you look at is always lit.
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x6d6880, 1.1);
+    const key = new THREE.DirectionalLight(0xffffff, 1.9);
+    key.position.set(3, 5, 4);
+    key.target.position.set(0, 0, -10);
+    const fill = new THREE.DirectionalLight(0xdfe4ff, 0.55);
+    fill.position.set(-5, -2, 2);
+    fill.target.position.set(0, 0, -10);
+    this.camera.add(key, key.target, fill, fill.target);
+    this.scene.add(hemi, this.camera);
 
     this.material = new THREE.MeshStandardMaterial({
       vertexColors: true, roughness: 0.9, metalness: 0, side: THREE.DoubleSide,
@@ -55,6 +69,23 @@ export class View {
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
+    this.controls.handleResize();
+  }
+
+  // Stop the coasting motion left over from the last drag or zoom.
+  stopMotion() {
+    const c = this.controls;
+    c._lastAngle = 0;
+    c._movePrev.copy(c._moveCurr);
+    c._zoomStart.copy(c._zoomEnd);
+    c._panStart.copy(c._panEnd);
+  }
+
+  setSpin(on) {
+    if (this.spinning === on) return;
+    if (on) this.stopMotion();
+    this.spinning = on;
+    if (this.onSpinChange) this.onSpinChange(on);
   }
 
   setModel(graph, positions) {
@@ -163,22 +194,39 @@ export class View {
     this.mesh.geometry.computeBoundingSphere();
   }
 
-  fit() {
+  // Frame the whole piece. reset = also go back to the starting angle,
+  // right side up.
+  fit(reset = false) {
     if (!this.mesh) return;
+    this.stopMotion();
     this.mesh.geometry.computeBoundingSphere();
     const s = this.mesh.geometry.boundingSphere;
     const r = Math.max(2, s.radius);
     const dist = r / Math.sin((this.camera.fov * Math.PI) / 360) * 1.15;
     const dir = this.camera.position.clone().sub(this.controls.target).normalize();
-    if (dir.lengthSq() < 0.5) dir.set(0.55, 0.42, 0.72).normalize();
+    if (reset || dir.lengthSq() < 0.5) {
+      dir.set(0.55, 0.42, 0.72).normalize();
+      this.camera.up.set(0, 1, 0);
+    }
     this.controls.target.copy(s.center);
     this.camera.position.copy(s.center).addScaledVector(dir, dist);
     this.camera.near = dist / 100; this.camera.far = dist * 20;
     this.camera.updateProjectionMatrix();
+    this.camera.lookAt(s.center);
     this.controls.update();
   }
 
   render() {
+    const now = performance.now();
+    const dt = Math.min(0.25, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+    if (this.spinning) {
+      // one full turn every 9 seconds, around the screen's up direction
+      const q = new THREE.Quaternion().setFromAxisAngle(this.camera.up.clone().normalize(), (2 * Math.PI / 9) * dt);
+      const off = this.camera.position.clone().sub(this.controls.target).applyQuaternion(q);
+      this.camera.position.copy(this.controls.target).add(off);
+      this.camera.lookAt(this.controls.target);
+    }
     this.controls.update();
     this.renderer.render(this.scene, this.camera);
   }

@@ -76,7 +76,8 @@ body {
   border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
 }
 .chip:hover, .btn:hover { border-color: var(--accent); }
-.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.chip[aria-pressed="true"], .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.view-hint { position: absolute; right: 12px; bottom: 12px; margin: 0; max-width: 60%; text-align: right; font-size: 12px; color: var(--muted); pointer-events: none; }
 :is(button, input, textarea, summary):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .editor {
   display: grid; grid-template-columns: auto minmax(0, 1fr); border: 1px solid var(--line); border-radius: var(--r);
@@ -211,12 +212,13 @@ output { min-width: 5.5em; color: var(--muted); }
     </section>
     <section class="stage" aria-label="3D model">
       <div class="canvas-wrap">
-        <canvas id="stage-canvas" aria-label="3D model of the pattern. Drag to turn it, scroll or pinch to zoom."></canvas>
+        <canvas id="stage-canvas" aria-label="3D model of the pattern. Drag to turn it in any direction, scroll or pinch to zoom."></canvas>
         <div class="stage-top">
           <span id="status" class="status" data-state="settling"><span class="dot"></span><span id="status-text">Settling</span></span>
           <span id="stale" class="stale" hidden>Fix the pattern to update the model</span>
         </div>
         <div class="ruler-wrap" aria-hidden="true"><div id="ruler" class="ruler"></div><span id="ruler-label">5 cm</span></div>
+        <p class="view-hint">Drag to turn in any direction. Scroll or pinch to zoom. Right-drag to move.</p>
       </div>
       <div class="controlbar">
         <div class="readout"><span id="size" class="size">&nbsp;</span><span id="counts" class="counts">&nbsp;</span></div>
@@ -225,7 +227,8 @@ output { min-width: 5.5em; color: var(--muted); }
           <label class="ctl" for="gauge">Gauge <input id="gauge" type="number" min="4" max="60" step="1" value="18" inputmode="numeric"> sc per 10 cm</label>
           <label class="toggle" for="show-yarn"><input id="show-yarn" type="checkbox" checked> Yarn</label>
           <label class="toggle" for="show-stripes"><input id="show-stripes" type="checkbox" checked> Round stripes</label>
-          <button id="fit-view" type="button" class="btn">Center view</button>
+          <button id="spin" type="button" class="btn" aria-pressed="false">Spin 360°</button>
+          <button id="fit-view" type="button" class="btn">Reset view</button>
         </div>
       </div>
     </section>

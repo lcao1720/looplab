@@ -14,6 +14,8 @@ python -m http.server 8000
 
 Then open http://localhost:8000.
 
+In the 3D view, drag to turn the piece in any direction (also over the top and underneath), scroll or pinch to zoom, and right-drag to move it. **Spin 360°** turns it around once every 9 seconds; **Reset view** goes back to the start angle. The lights move with the camera, so the side you look at is always lit.
+
 On GitHub, turn on **Settings → Pages → Deploy from branch → main / root** and the same page is live at `https://<user>.github.io/<repo>/`.
 
 ## Write a pattern
